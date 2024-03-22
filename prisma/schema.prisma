@@ -1,0 +1,130 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model Post {
+    id        Int      @id @default(autoincrement())
+    name      String
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    @@index([name])
+}
+
+model Attraction {
+    id        String   @id @default(cuid())
+    createdAt DateTime @default(now())
+
+    name        String
+    description String?
+    city        City?   @relation(fields: [cityId], references: [id])
+    cityId      String?
+    imageURL    String
+    authorId    String
+
+    googlePlaceId         String? @unique
+    tripAdvisorLocationId String? @unique
+
+    upvotes Upvotes[]
+
+    @@index([cityId])
+}
+
+model City {
+    id        String   @id @default(cuid())
+    createdAt DateTime @default(now())
+    name      String   @unique
+
+    attractions     Attraction[]
+    itinerary       Itinerary[]
+    recommendedDays RecommendedDaysInCity[]
+
+    authorId    String
+    description String?
+    imageURL    String?
+
+    placeResult Json?
+
+    @@index([authorId])
+}
+
+model Itinerary {
+    id        String   @id @default(cuid())
+    createdAt DateTime @default(now())
+
+    city   City   @relation(fields: [cityId], references: [id])
+    cityId String
+
+    user   User?   @relation(fields: [userId], references: [id])
+    userId String?
+
+    title    String?
+    imageURL String? @db.VarChar(500)
+    details  Json?
+
+    placeId   String? // used to retrieve place details from Google Places API
+    userNotes String? @db.Text
+
+    @@index([cityId])
+    @@index([userId])
+}
+
+model Likes {
+    id        String   @id @default(cuid())
+    createdAt DateTime @default(now())
+
+    cityId  String
+    placeId String
+    userId  String
+
+    @@unique([placeId, userId])
+    @@index([userId])
+    @@index([cityId])
+}
+
+model RecommendedDaysInCity {
+    id        String   @id @default(cuid())
+    createdAt DateTime @default(now())
+
+    city            City   @relation(fields: [cityId], references: [id])
+    cityId          String
+    recommendedDays Int
+
+    userId String
+
+    @@unique([cityId, userId])
+    @@index([cityId])
+    @@index([userId])
+}
+
+model Upvotes {
+    id        String   @id @default(cuid())
+    createdAt DateTime @default(now())
+
+    attraction   Attraction @relation(fields: [attractionId], references: [id])
+    attractionId String
+
+    userId String
+
+    @@unique([attractionId, userId]) // https://www.prisma.io/docs/concepts/components/prisma-schema/data-model#defining-a-unique-field
+    @@index([attractionId])
+    @@index([userId])
+}
+
+model User {
+    id        String   @id @default(cuid())
+    createdAt DateTime @default(now())
+
+    fullName String?
+    imageURL String?
+
+    itineraries Itinerary[]
+}
